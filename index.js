@@ -25,7 +25,8 @@ if (!Element.prototype.matches) {
 AFRAME.registerComponent('teleport-controls', {
   schema: {
     type: {default: 'parabolic', oneOf: ['parabolic', 'line']},
-    button: {default: 'trackpad', oneOf: ['trackpad', 'trigger', 'grip', 'menu']},
+    aimEvent: {default: 'aim'},
+    teleportEvent: {default: 'teleport'},
     collisionEntities: {default: ''},
     hitEntity: {type: 'selector'},
     cameraRig: {type: 'selector'},
@@ -65,8 +66,11 @@ AFRAME.registerComponent('teleport-controls', {
     teleportEntity.setAttribute('visible', false);
     el.sceneEl.appendChild(this.teleportEntity);
 
-    el.addEventListener(data.button + 'down', this.onButtonDown.bind(this));
-    el.addEventListener(data.button + 'up', this.onButtonUp.bind(this));
+    this.onAim = this.onAim.bind(this);
+    this.onTeleport = this.onTeleport.bind(this);
+
+    el.addEventListener(data.aimEvent, this.onAim);
+    el.addEventListener(data.teleportEvent, this.onTeleport);
 
     this.queryCollisionEntities();
   },
@@ -102,6 +106,18 @@ AFRAME.registerComponent('teleport-controls', {
     this.hitEntity.setAttribute('visible', false);
 
     if ('collisionEntities' in diff) { this.queryCollisionEntities(); }
+
+    if (oldData.aimEvent !== data.aimEvent) {
+      el.removeEventListener(oldData.aimEvent, this.onAim);
+      el.addEventListener(data.aimEvent, this.onAim);
+    }
+
+    if (oldData.teleportEvent !== data.teleportEvent) {
+      el.removeEventListener(oldData.teleportEvent, this.onTeleport);
+      el.addEventListener(data.teleportEvent, this.onTeleport);
+    }
+    el.addEventListener(data.teleportEvent, this.onTeleport);
+
   },
 
   remove: function () {
@@ -207,14 +223,14 @@ AFRAME.registerComponent('teleport-controls', {
     el.sceneEl.addEventListener('child-detached', this.childDetachHandler);
   },
 
-  onButtonDown: function () {
+  onAim: function () {
     this.active = true;
   },
 
   /**
    * Jump!
    */
-  onButtonUp: function (evt) {
+  onTeleport: function (evt) {
     if (!this.active) { return; }
 
     // Jump!
